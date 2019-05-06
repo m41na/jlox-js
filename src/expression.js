@@ -5,6 +5,15 @@ class Expr {
     }
 }
 
+class Assign extends Expr {
+
+    constructor(name, value){
+        super();
+        this.name = name;
+        this.value = value;
+    }
+}
+
 class Binary extends Expr {
 
     constructor(left, operator, right){
@@ -40,6 +49,14 @@ class Unary extends Expr {
     }
 }
 
+class Variable extends Expr {
+
+    constructor(token){
+        super();
+        this.name = token;
+    }
+}
+
 class Stmt {
 
     accept(visitor){
@@ -63,13 +80,25 @@ class Print extends Stmt {
     }
 }
 
+class Var extends Stmt {
+
+    constructor(token, expression){
+        super();
+        this.name = token;
+        this.initializer = expression;
+    }
+}
+
 module.exports = {
     Expr,
+    Assign,
     Binary,
     Grouping,
     Unary,
+    Variable,
     Literal,
     Stmt,
     Expression,
-    Print
+    Print,
+    Var
 };

@@ -1,17 +1,22 @@
 /**
  * Grammer rules
  * 
-    expression     → matchEither ;
-    matchEither    → matchBoth ;
-    matchBoth      → equality ;
-    equality       → comparison ( ( "!=" | "==" ) comparison )* ;
-    comparison     → addition ( ( ">" | ">=" | "<" | "<=" ) addition )* ;
-    addition       → multiplication ( ( "-" | "+" ) multiplication )* ;
-    multiplication → unary ( ( "/" | "*" ) unary )* ;
-    unary          → ( "!" | "-" ) unary
-                | primary ;
-    primary        → NUMBER | STRING | "false" | "true" | "nil"
-                | "(" expression ")" ;
+    program         → declaration* EOF ;
+    declaration     → varDecl | (assertion)* ;
+    assertion       → statement ;
+    statement       → exprStmt | printStmt ;
+    exprStmt        → expression ";" ;
+    printStmt       → "print" expression ";" ;
+    expression      → assignment ;
+    assignment      → IDENTIFIER "=" assignment | matchEither ( || ) ;
+    matchEither     → matchBoth ( && ) matchBoth;
+    matchBoth       → equality ( == ) equality;
+    equality        → comparison ( ( "!=" | "==" ) comparison )* ;
+    comparison      → addition ( ( ">" | ">=" | "<" | "<=" ) addition )* ;
+    addition        → multiplication ( ( "-" | "+" ) multiplication )* ;
+    multiplication  → unary ( ( "/" | "*" ) unary )* ;
+    unary           → ( "!" | "-" ) unary | primary ;
+    primary         → NUMBER | STRING | "false" | "true" | "nil" | "(" expression ")" | IDENTIFIER ;
  */
 
 const { Scanner } = require('./src/scanner');
@@ -33,4 +38,7 @@ const run = (source) => {
     interpreter.interpret(statements);
 };
 
-run("print 10 || 2;");
+run(`var a = 1;
+     var b = 2;
+     print a + b;`
+);

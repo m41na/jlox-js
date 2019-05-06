@@ -1,9 +1,14 @@
-const {runtimeError} = require('./scanner');
-const {TokenType} = require('../src/scanner');
+const {
+    runtimeError
+} = require('./scanner');
+const {
+    TokenType
+} = require('../src/scanner');
+const Environment = require('./environment');
 
 class RuntimeError extends Error {
 
-    constructor(token, message){
+    constructor(token, message) {
         super();
         this.token = token;
         this.message = message;
@@ -11,6 +16,11 @@ class RuntimeError extends Error {
 }
 
 class Interpreter {
+
+    constructor(ctx) {
+        this.environment = new Environment();
+        if (ctx) this.environment.init(ctx);
+    }
 
     interpret(statements) {
         try {
@@ -27,24 +37,37 @@ class Interpreter {
     }
 
     stringify(object) {
-        return (isNaN(object))? object : object.toString();
+        return (isNaN(object)) ? object : object.toString();
     }
 
     visitExpr(expr) {
         let typeOf = expr.constructor.name;
-        if(typeOf == "Binary"){
+        if (typeOf == "Assign") {
+            return this.visitAssignExpr(expr);
+        }
+        if (typeOf == "Binary") {
             return this.visitBinaryExpr(expr);
         }
-        if(typeOf == "Literal"){
+        if (typeOf == "Literal") {
             return this.visitLiteralExpr(expr);
         }
-        if(typeOf == "Grouping"){
+        if (typeOf == "Grouping") {
             return this.visitGroupingExpr(expr);
         }
-        if(typeOf == "Unary"){
+        if (typeOf == "Unary") {
             return this.visitUnaryExpr(expr);
         }
+        if (typeOf == "Variable") {
+            return this.visitVariableExpr(expr);
+        }
         return null;
+    }
+
+    visitAssignExpr(expr) {
+        let value = this.evaluate(expr.value);
+
+        this.environment.assign(expr.name, value);
+        return value;
     }
 
     visitBinaryExpr(expr) {
@@ -64,8 +87,10 @@ class Interpreter {
             case TokenType.LESS_EQUAL:
                 this.checkNumberOperands(expr.operator, left, right);
                 return left <= right;
-            case TokenType.BANG_EQUAL: return !this.isEqual(left, right);
-            case TokenType.EQUAL_EQUAL: return this.isEqual(left, right);
+            case TokenType.BANG_EQUAL:
+                return !this.isEqual(left, right);
+            case TokenType.EQUAL_EQUAL:
+                return this.isEqual(left, right);
             case TokenType.MINUS:
                 this.checkNumberOperands(expr.operator, left, right);
                 return left - right;
@@ -84,9 +109,12 @@ class Interpreter {
             case TokenType.STAR:
                 this.checkNumberOperands(expr.operator, left, right);
                 return left * right;
-            case TokenType.LOGICAL_OR: return this.logicalOr(left, right);
-            case TokenType.LOGICAL_AND: return this.logicalAnd(left, right);
-            case TokenType.TILDE_EQUALS: return this.isLike(left, right);
+            case TokenType.LOGICAL_OR:
+                return this.logicalOr(left, right);
+            case TokenType.LOGICAL_AND:
+                return this.logicalAnd(left, right);
+            case TokenType.TILDE_EQUALS:
+                return this.isLike(left, right);
         }
 
         // Unreachable.
@@ -116,6 +144,10 @@ class Interpreter {
         return null;
     }
 
+    visitVariableExpr(expr) {
+        return this.environment.get(expr.name);
+    }
+
     isEqual(a, b) {
         // nil is only equal to nil.
         if (a == null && b == null) return true;
@@ -129,16 +161,16 @@ class Interpreter {
         return new Boolean(object);
     }
 
-    isLike(a, b){
+    isLike(a, b) {
         if (a == null && b == null) return true;
         return a.match(new RegExp(b, 'g'));
     }
 
-    logicalOr(a,b){
+    logicalOr(a, b) {
         return a || b;
     }
 
-    logicalAnd(a,b){
+    logicalAnd(a, b) {
         return a && b;
     }
 
@@ -158,11 +190,14 @@ class Interpreter {
 
     visitStmt(stmt) {
         let typeOf = stmt.constructor.name;
-        if(typeOf == "Expression"){
+        if (typeOf == "Expression") {
             return this.visitExpressionStmt(stmt);
         }
-        if(typeOf == "Print"){
+        if (typeOf == "Print") {
             return this.visitPrintStmt(stmt);
+        }
+        if (typeOf == "Var") {
+            return this.visitVarStmt(stmt);
         }
         return null;
     }
@@ -174,6 +209,16 @@ class Interpreter {
     visitPrintStmt(stmt) {
         let value = this.evaluate(stmt.expression);
         console.log(this.stringify(value));
+        return null;
+    }
+
+    visitVarStmt(stmt) {
+        let value = null;
+        if (stmt.initializer != null) {
+            value = this.evaluate(stmt.initializer);
+        }
+
+        this.environment.define(stmt.name.lexeme, value);
         return null;
     }
 }

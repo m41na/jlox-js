@@ -49,6 +49,7 @@ const TokenType = {
     TRUE: "TRUE",
     FALSE: "FALSE",
     PRINT: "PRINT",
+    VAR: "VAR",
 
     EOF: "EOF"
 };
@@ -62,7 +63,8 @@ const keywords = {
     apply: "APPLY",
     true: "TRUE",
     false: "FALSE",
-    print: "PRINT"
+    print: "PRINT",
+    var: "VAR"
 };
 
 class Token {

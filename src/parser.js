@@ -1,6 +1,20 @@
-const {TokenType, tokenError} = require('./scanner');
-const {Binary, Literal, Grouping, Unary} = require('../src/expression');
-const {Expression, Print} = require('./expression');
+const {
+    TokenType,
+    tokenError
+} = require('./scanner');
+const {
+    Assign,
+    Binary,
+    Literal,
+    Grouping,
+    Unary,
+    Variable
+} = require('../src/expression');
+const {
+    Expression,
+    Print,
+    Var
+} = require('./expression');
 
 class Parser {
 
@@ -11,7 +25,26 @@ class Parser {
     }
 
     expression() {
-        return this.matchEither();
+        return this.assignment();
+    }
+
+    assignment() {
+        let expr = this.matchEither();
+
+        if (this.match([TokenType.EQUAL])) {
+            let equals = this.previous();
+            let value = this.assignment();
+
+            let typeOf = expr.constructor.name;
+            if (typeOf == "Variable") {
+                let name = expr.name;
+                return new Assign(name, value);
+            }
+
+            this.error(equals, "Invalid assignment target.");
+        }
+
+        return expr;
     }
 
     equality() {
@@ -73,7 +106,7 @@ class Parser {
         return expr;
     }
 
-    matchBoth(){
+    matchBoth() {
         let expr = this.equality();
 
         if (this.match([TokenType.LOGICAL_AND])) {
@@ -85,7 +118,7 @@ class Parser {
         return expr;
     }
 
-    matchEither(){
+    matchEither() {
         let expr = this.matchBoth();
 
         if (this.match([TokenType.LOGICAL_OR])) {
@@ -140,13 +173,17 @@ class Parser {
             return new Literal(this.previous().literal);
         }
 
+        if (this.match([TokenType.IDENTIFIER])) {
+            return new Variable(this.previous());
+        }
+
         if (this.match([TokenType.LEFT_PAREN])) {
             let expr = this.expression();
             this.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
             return new Grouping(expr);
         }
         //exhausted all options for primary
-        return new Literal(this.consume(TokenType.IDENTIFIER, "Expecting an identifier"));
+        return null;
     }
 
     consume(type, message) {
@@ -178,10 +215,57 @@ class Parser {
         return new Expression(expr);
     }
 
+    declaration() {
+        try {
+            if (this.match([TokenType.VAR])) return this.varDeclaration();
+
+            return this.statement();
+        } catch (error) {
+            this.synchronize();
+            return null;
+        }
+    }
+
+    varDeclaration() {
+        let name = this.consume(TokenType.IDENTIFIER, "Expect variable name.");
+
+        let initializer = null;
+        if (this.match([TokenType.EQUAL])) {
+            initializer = this.expression();
+        }
+
+        this.consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
+        return new Var(name, initializer);
+    }
+
+    synchronize() {
+        this.advance();
+
+        while (!this.isAtEnd()) {
+            if (this.previous().type == TokenType.SEMICOLON) return;
+
+            switch (this.peek().type) {
+                case TokenType.ASSERT:
+                case TokenType.MAP:
+                case TokenType.REDUCE:
+                case TokenType.FILTER:
+                case TokenType.EACH:
+                case TokenType.APPLY:
+                case TokenType.TRUE:
+                case TokenType.FALSE:
+                case TokenType.PRINT:
+                case TokenType.VAR:
+                    return;
+            }
+
+            this.advance();
+        }
+    }
+
     parse() {
         let statements = [];
         while (!this.isAtEnd()) {
-            statements.push(this.statement());
+            statements.push(this.declaration());
         }
 
         return statements;

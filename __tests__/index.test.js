@@ -10,4 +10,4 @@ let ctx = {
     }
 };
 
-let stmt = "assert ctx.name == 'Fitz' && ctx.diploma[school].name ~= '.*tto'";
+let stmt = "assert ctx.name == 'Fitz' && ctx.diploma[school].name ~= '.*tto';";

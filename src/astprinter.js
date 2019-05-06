@@ -10,6 +10,9 @@ class AstPrinter {
 
     visitExpr(expr) {
         let typeOf = expr.constructor.name;
+        if (typeOf == "Assign") {
+            return this.visitAssignExpr(expr);
+        }
         if(typeOf == "Binary"){
             return this.visitBinaryExpr(expr);
         }
@@ -22,7 +25,14 @@ class AstPrinter {
         if(typeOf == "Unary"){
             return this.visitUnaryExpr(expr);
         }
+        if(typeOf == "Variable"){
+            return this.visitVariableExpr(expr);
+        }
         return null;
+    }
+
+    visitAssignExpr(expr) {
+        return this.parenthesize(expr.name, [value]);
     }
 
     visitBinaryExpr(expr) {
@@ -40,6 +50,10 @@ class AstPrinter {
 
     visitUnaryExpr(expr) {
         return this.parenthesize(expr.operator.lexeme, [expr.right]);
+    }
+
+    visitVariableExpr(expr) {
+        return expr.name.lexeme;
     }
 
     parenthesize(name, exprs) {
@@ -63,6 +77,9 @@ class AstPrinter {
         if(typeOf == "Print"){
             return this.visitPrintStmt(stmt);
         }
+        if (typeOf == "Var") {
+            return this.visitVarStmt(stmt);
+        }
         return null;
     }
 
@@ -76,6 +93,13 @@ class AstPrinter {
     visitPrintStmt(stmt) {
         if (stmt.expression != null) {
             console.log(this.printExpr(stmt.expression));
+        }
+        return null;
+    }
+
+    visitVarStmt(stmt) {
+        if(stmt.initializer){
+            console.log(stmt.initializer.value);
         }
         return null;
     }
